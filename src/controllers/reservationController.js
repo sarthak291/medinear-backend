@@ -59,3 +59,24 @@ exports.updateReservationStatus = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+
+exports.getStoreReservations = async (req, res) => {
+  try {
+    const { storeId } = req.params;
+
+    if (!storeId) {
+      return res.status(400).json({ message: "Store ID required" });
+    }
+
+    const reservations = await Reservation.find({ storeId })
+      .sort({ createdAt: -1 })
+      .populate("storeId", "storeName")
+      .populate("medicines.medicineId", "name");
+
+    res.json(reservations);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
