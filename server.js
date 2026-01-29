@@ -26,3 +26,12 @@ app.use("/api/search", searchRoutes);
 
 const reservationRoutes = require("./src/routes/reservationRoutes");
 app.use("/api/reservations", reservationRoutes);
+
+const testUploadRoutes = require("./src/routes/testUploadRoutes");
+app.use("/api/test", testUploadRoutes);
+
+const storeAuthRoutes = require("./src/routes/storeAuthRoutes");
+app.use("/api/store", storeAuthRoutes);
+
+const storeDashboardRoutes = require("./src/routes/storeDashboardRoutes");
+app.use("/api/store", storeDashboardRoutes);
