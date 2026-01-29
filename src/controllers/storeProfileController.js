@@ -1,5 +1,5 @@
 const MedicalStore = require("../models/MedicalStore");
-
+const cloudinary = require("../config/cloudinary");
 exports.getStoreProfile = async (req, res) => {
   try {
     const storeId = req.storeId;
@@ -54,6 +54,38 @@ exports.updateStoreProfile = async (req, res) => {
     });
   } catch (err) {
     console.error("UPDATE PROFILE ERROR:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+exports.deleteStoreImage = async (req, res) => {
+  try {
+    const storeId = req.storeId;
+    const { imageUrl } = req.body;
+
+    if (!imageUrl) {
+      return res.status(400).json({ message: "Image URL required" });
+    }
+
+    // 🔹 Extract public_id from Cloudinary URL
+    // Example URL:
+    // https://res.cloudinary.com/demo/image/upload/v123456/abcxyz.jpg
+    const publicId = imageUrl
+      .split("/")
+      .pop()
+      .split(".")[0];
+
+    // 🔹 Delete from Cloudinary
+    await cloudinary.uploader.destroy(publicId);
+
+    // 🔹 Remove from MongoDB
+    await MedicalStore.findByIdAndUpdate(storeId, {
+      $pull: { images: imageUrl },
+    });
+
+    res.json({ message: "Image deleted successfully" });
+  } catch (err) {
+    console.error("DELETE IMAGE ERROR:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
