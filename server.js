@@ -35,3 +35,6 @@ app.use("/api/store", storeAuthRoutes);
 
 const storeDashboardRoutes = require("./src/routes/storeDashboardRoutes");
 app.use("/api/store", storeDashboardRoutes);
+
+const storeProfileRoutes = require("./src/routes/storeProfileRoutes");
+app.use("/api/store", storeProfileRoutes);
