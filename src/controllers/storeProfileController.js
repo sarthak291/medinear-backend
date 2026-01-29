@@ -70,10 +70,12 @@ exports.deleteStoreImage = async (req, res) => {
     // 🔹 Extract public_id from Cloudinary URL
     // Example URL:
     // https://res.cloudinary.com/demo/image/upload/v123456/abcxyz.jpg
-    const publicId = imageUrl
-      .split("/")
-      .pop()
-      .split(".")[0];
+    const urlParts = imageUrl.split("/");
+const fileName = urlParts.pop(); // abc123.jpg
+const folderPath = urlParts.slice(urlParts.indexOf("upload") + 2).join("/");
+
+const publicId = `${folderPath}/${fileName.split(".")[0]}`;
+
 
     // 🔹 Delete from Cloudinary
     await cloudinary.uploader.destroy(publicId);

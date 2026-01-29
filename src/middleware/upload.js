@@ -5,14 +5,11 @@ const cloudinary = require("../config/cloudinary");
 const storage = new CloudinaryStorage({
   cloudinary,
   params: {
-    folder: "medinear/medical_stores",
-    allowed_formats: ["jpg", "jpeg", "png"],
+    folder: "medinear/stores",
+    allowed_formats: ["jpg", "png", "jpeg", "webp"],
   },
 });
 
-const upload = multer({
-  storage,
-  limits: { files: 3 },
-});
+const upload = multer({ storage });
 
 module.exports = upload;
