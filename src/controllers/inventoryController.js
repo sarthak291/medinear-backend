@@ -1,35 +1,49 @@
 const Inventory = require("../models/Inventory");
+const Medicine = require("../models/Medicine");
 
 exports.addInventoryItem = async (req, res) => {
   try {
     const storeId = req.storeId;
     const {
-      medicineId,
+      medicineName,
       price,
       quantityAvailable,
       expiryDate,
     } = req.body;
 
-    if (!medicineId || price == null || quantityAvailable == null) {
+    if (!medicineName || price == null || quantityAvailable == null) {
       return res
         .status(400)
         .json({ message: "Missing required fields" });
     }
 
-    const item = await Inventory.create({
+    // 1️⃣ Find or create medicine
+    let medicine = await Medicine.findOne({
+      name: medicineName.toLowerCase(),
+    });
+
+    if (!medicine) {
+      medicine = await Medicine.create({
+        name: medicineName.toLowerCase(),
+      });
+    }
+
+    // 2️⃣ Create inventory
+    const inventory = await Inventory.create({
       storeId,
-      medicineId,
+      medicineId: medicine._id,
       price,
       quantityAvailable,
       expiryDate,
     });
 
-    res.status(201).json(item);
+    res.status(201).json(inventory);
   } catch (err) {
     console.error("ADD INVENTORY ERROR:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 exports.getStoreInventory = async (req, res) => {
   try {
@@ -50,25 +64,53 @@ exports.updateInventoryItem = async (req, res) => {
   try {
     const storeId = req.storeId;
     const { id } = req.params;
+    const {
+      medicineName,
+      price,
+      quantityAvailable,
+      expiryDate,
+    } = req.body;
 
-    const item = await Inventory.findOneAndUpdate(
+    let updateData = {
+      price,
+      quantityAvailable,
+      expiryDate,
+    };
+
+    // If medicine name changed → re-link medicine
+    if (medicineName) {
+      let medicine = await Medicine.findOne({
+        name: medicineName.toLowerCase(),
+      });
+
+      if (!medicine) {
+        medicine = await Medicine.create({
+          name: medicineName.toLowerCase(),
+        });
+      }
+
+      updateData.medicineId = medicine._id;
+    }
+
+    const updated = await Inventory.findOneAndUpdate(
       { _id: id, storeId },
-      req.body,
+      updateData,
       { new: true }
     );
 
-    if (!item) {
+    if (!updated) {
       return res
         .status(404)
         .json({ message: "Inventory item not found" });
     }
 
-    res.json(item);
+    res.json(updated);
   } catch (err) {
     console.error("UPDATE INVENTORY ERROR:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 exports.toggleInventoryStatus = async (req, res) => {
   try {

@@ -3,11 +3,11 @@ const mongoose = require("mongoose");
 const medicineSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true
+    required: true,
+    trim: true,
+    lowercase: true,
+    unique: true,
   },
-  saltComposition: String,
-  category: String,
-  prescriptionRequired: Boolean
-}, { timestamps: true });
+});
 
 module.exports = mongoose.model("Medicine", medicineSchema);
