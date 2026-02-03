@@ -4,20 +4,12 @@ const Medicine = require("../models/Medicine");
 exports.addInventoryItem = async (req, res) => {
   try {
     const storeId = req.storeId;
-    const {
-      medicineName,
-      price,
-      quantityAvailable,
-      expiryDate,
-    } = req.body;
+    const { medicineName, price, quantityAvailable, expiryDate } = req.body;
 
-    if (!medicineName || price == null || quantityAvailable == null) {
-      return res
-        .status(400)
-        .json({ message: "Missing required fields" });
+    if (!medicineName || !price || !quantityAvailable) {
+      return res.status(400).json({ message: "Missing fields" });
     }
 
-    // 1️⃣ Find or create medicine
     let medicine = await Medicine.findOne({
       name: medicineName.toLowerCase(),
     });
@@ -28,8 +20,7 @@ exports.addInventoryItem = async (req, res) => {
       });
     }
 
-    // 2️⃣ Create inventory
-    const inventory = await Inventory.create({
+    const item = await Inventory.create({
       storeId,
       medicineId: medicine._id,
       price,
@@ -37,9 +28,9 @@ exports.addInventoryItem = async (req, res) => {
       expiryDate,
     });
 
-    res.status(201).json(inventory);
+    res.status(201).json(item);
   } catch (err) {
-    console.error("ADD INVENTORY ERROR:", err);
+    console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -64,20 +55,10 @@ exports.updateInventoryItem = async (req, res) => {
   try {
     const storeId = req.storeId;
     const { id } = req.params;
-    const {
-      medicineName,
-      price,
-      quantityAvailable,
-      expiryDate,
-    } = req.body;
+    const { medicineName, price, quantityAvailable, expiryDate } = req.body;
 
-    let updateData = {
-      price,
-      quantityAvailable,
-      expiryDate,
-    };
+    let updateData = { price, quantityAvailable, expiryDate };
 
-    // If medicine name changed → re-link medicine
     if (medicineName) {
       let medicine = await Medicine.findOne({
         name: medicineName.toLowerCase(),
@@ -98,19 +79,12 @@ exports.updateInventoryItem = async (req, res) => {
       { new: true }
     );
 
-    if (!updated) {
-      return res
-        .status(404)
-        .json({ message: "Inventory item not found" });
-    }
-
     res.json(updated);
   } catch (err) {
-    console.error("UPDATE INVENTORY ERROR:", err);
+    console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 };
-
 
 exports.toggleInventoryStatus = async (req, res) => {
   try {

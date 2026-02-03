@@ -41,3 +41,6 @@ app.use("/api/store", storeProfileRoutes);
 
 const inventoryRoutes = require("./src/routes/inventoryRoutes");
 app.use("/api/store/inventory", inventoryRoutes);
+
+const adminRoutes = require("./src/routes/adminRoutes");
+app.use("/api/admin", adminRoutes);
