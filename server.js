@@ -1,5 +1,5 @@
 require("dotenv").config(); // 👈 MUST BE FIRST
-import searchRoutes from "./src/routes/searchRoutes.js";
+
 const express = require("express");
 const cors = require("cors");
 const connectDB = require("./src/config/db");

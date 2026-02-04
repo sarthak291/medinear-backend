@@ -1,11 +1,10 @@
-import MedicalStore from "../models/MedicalStore.js";
-import calculateDistance from "../utils/distance.js";
+const MedicalStore = require("../models/MedicalStore");
 const Medicine = require("../models/Medicine");
 const Inventory = require("../models/Inventory");
-const MedicalStore = require("../models/MedicalStore");
 const getDistanceKm = require("../utils/distance");
 const stringSimilarity = require("string-similarity");
 
+/* ================= SEARCH MEDICINE ================= */
 exports.searchMedicine = async (req, res) => {
   try {
     const { query, lat, lng, radius = 5 } = req.query;
@@ -19,14 +18,13 @@ exports.searchMedicine = async (req, res) => {
       name: { $regex: query, $options: "i" }
     });
 
-    // ❌ If medicine NOT found → suggest closest match
+    // If medicine not found → suggest closest match
     if (!medicine) {
       const allMedicines = await Medicine.find().select("name");
       const medicineNames = allMedicines.map(m => m.name);
 
       if (medicineNames.length > 0) {
         const match = stringSimilarity.findBestMatch(query, medicineNames);
-
         if (match.bestMatch.rating > 0.4) {
           return res.json({
             medicine: null,
@@ -39,7 +37,7 @@ exports.searchMedicine = async (req, res) => {
       return res.json({ results: [] });
     }
 
-    // 2. Get inventory entries
+    // 2. Get inventory
     const inventoryList = await Inventory.find({
       medicineId: medicine._id,
       quantityAvailable: { $gt: 0 },
@@ -60,16 +58,15 @@ exports.searchMedicine = async (req, res) => {
 
         if (distance <= radius) {
           return {
-                   storeId: store._id,            // ✅ needed for reservation
-                  medicineId: item.medicineId,   // ✅ needed for reservation
-                  storeName: store.storeName,
-                  phone: store.phone,
-                  area: store.address.area,
-                  deliveryAvailable: store.deliveryAvailable,
-                  price: item.price,
-                  quantityAvailable: item.quantityAvailable,
-                  distance: Number(distance.toFixed(2))
-};
+            storeId: store._id,
+            medicineId: item.medicineId,
+            storeName: store.storeName,
+            phone: store.phone,
+            area: store.address.area,
+            price: item.price,
+            quantityAvailable: item.quantityAvailable,
+            distance: Number(distance.toFixed(2))
+          };
         }
         return null;
       })
@@ -77,13 +74,13 @@ exports.searchMedicine = async (req, res) => {
       .sort((a, b) => a.price - b.price);
 
     res.json({ medicine: medicine.name, results });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });
   }
 };
 
+/* ================= AUTOCOMPLETE ================= */
 exports.searchMedicineSuggestions = async (req, res) => {
   try {
     const { q } = req.query;
@@ -103,56 +100,51 @@ exports.searchMedicineSuggestions = async (req, res) => {
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }
-  
 };
 
-export const getNearbyStores = async (req, res) => {
+/* ================= NEARBY STORES ================= */
+exports.getNearbyStores = async (req, res) => {
   try {
     const { lat, lng, radius = 50 } = req.query;
 
     if (!lat || !lng) {
       return res.status(400).json({
-        message: "Latitude and longitude are required",
+        message: "Latitude and longitude are required"
       });
     }
 
-    const userLat = parseFloat(lat);
-    const userLng = parseFloat(lng);
-    const maxRadius = parseFloat(radius);
-
-    // 🔹 Get only verified stores
     const stores = await MedicalStore.find({
-      isVerified: true,
-    }).select("storeName address coordinates images");
+      isVerified: true
+    });
 
-    const nearbyStores = stores
-      .map((store) => {
-        const distance = calculateDistance(
-          userLat,
-          userLng,
+    const results = stores
+      .map(store => {
+        const distance = getDistanceKm(
+          Number(lat),
+          Number(lng),
           store.coordinates.lat,
           store.coordinates.lng
         );
 
-        return {
-          storeId: store._id,
-          storeName: store.storeName,
-          area: store.address.area,
-          city: store.address.city,
-          images: store.images,
-          distance: Number(distance.toFixed(2)),
-        };
+        if (distance <= radius) {
+          return {
+            storeId: store._id,
+            storeName: store.storeName,
+            area: store.address.area,
+            city: store.address.city,
+            distance: Number(distance.toFixed(2))
+          };
+        }
+        return null;
       })
-      .filter((store) => store.distance <= maxRadius)
+      .filter(Boolean)
       .sort((a, b) => a.distance - b.distance);
 
-    return res.json({
-      results: nearbyStores,
-    });
+    res.json({ results });
   } catch (error) {
     console.error("Nearby search error:", error);
     res.status(500).json({
-      message: "Failed to fetch nearby medical stores",
+      message: "Failed to fetch nearby medical stores"
     });
   }
 };

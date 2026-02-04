@@ -1,18 +1,14 @@
 const express = require("express");
-const router = express.Router();
-
-import {
-  searchMedicine,
-  getNearbyStores,
-} from "../controllers/searchController.js";
-
 const {
   searchMedicine,
-  searchMedicineSuggestions
+  searchMedicineSuggestions,
+  getNearbyStores
 } = require("../controllers/searchController");
 
+const router = express.Router();
+
 router.get("/medicine", searchMedicine);
-router.get("/nearby", getNearbyStores);
 router.get("/suggest", searchMedicineSuggestions);
+router.get("/nearby", getNearbyStores);
 
 module.exports = router;
