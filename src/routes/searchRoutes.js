@@ -1,8 +1,19 @@
 const express = require("express");
-const { getNearbyStores } = require("../controllers/searchController");
+const {
+  searchMedicine,
+  searchMedicineSuggestions,
+  getNearbyStores
+} = require("../controllers/searchController");
 
 const router = express.Router();
 
+// 🔹 Medicine search (THIS WAS MISSING ❌)
+router.get("/medicine", searchMedicine);
+
+// 🔹 Autocomplete (optional but you already use it)
+router.get("/suggest", searchMedicineSuggestions);
+
+// 🔹 Nearby stores
 router.get("/nearby", getNearbyStores);
 
 module.exports = router;
