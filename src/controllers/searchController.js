@@ -1,3 +1,5 @@
+import MedicalStore from "../models/MedicalStore.js";
+import calculateDistance from "../utils/distance.js";
 const Medicine = require("../models/Medicine");
 const Inventory = require("../models/Inventory");
 const MedicalStore = require("../models/MedicalStore");
@@ -102,4 +104,55 @@ exports.searchMedicineSuggestions = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
   
+};
+
+export const getNearbyStores = async (req, res) => {
+  try {
+    const { lat, lng, radius = 50 } = req.query;
+
+    if (!lat || !lng) {
+      return res.status(400).json({
+        message: "Latitude and longitude are required",
+      });
+    }
+
+    const userLat = parseFloat(lat);
+    const userLng = parseFloat(lng);
+    const maxRadius = parseFloat(radius);
+
+    // 🔹 Get only verified stores
+    const stores = await MedicalStore.find({
+      isVerified: true,
+    }).select("storeName address coordinates images");
+
+    const nearbyStores = stores
+      .map((store) => {
+        const distance = calculateDistance(
+          userLat,
+          userLng,
+          store.coordinates.lat,
+          store.coordinates.lng
+        );
+
+        return {
+          storeId: store._id,
+          storeName: store.storeName,
+          area: store.address.area,
+          city: store.address.city,
+          images: store.images,
+          distance: Number(distance.toFixed(2)),
+        };
+      })
+      .filter((store) => store.distance <= maxRadius)
+      .sort((a, b) => a.distance - b.distance);
+
+    return res.json({
+      results: nearbyStores,
+    });
+  } catch (error) {
+    console.error("Nearby search error:", error);
+    res.status(500).json({
+      message: "Failed to fetch nearby medical stores",
+    });
+  }
 };
