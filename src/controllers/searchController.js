@@ -107,44 +107,45 @@ exports.getNearbyStores = async (req, res) => {
   try {
     const { lat, lng, radius = 50 } = req.query;
 
+    console.log("NEARBY API HIT:", lat, lng);
+
     if (!lat || !lng) {
-      return res.status(400).json({
-        message: "Latitude and longitude are required"
-      });
+      return res.status(400).json({ results: [] });
     }
 
-    const stores = await MedicalStore.find({
-      isVerified: true
-    });
+    const stores = await MedicalStore.find({}); // 🔴 TEMP: no isVerified filter
+
+    console.log("TOTAL STORES IN DB:", stores.length);
 
     const results = stores
-      .map(store => {
+      .map((store) => {
+        if (!store.coordinates) return null;
+
         const distance = getDistanceKm(
           Number(lat),
           Number(lng),
-          store.coordinates.lat,
-          store.coordinates.lng
+          Number(store.coordinates.lat),
+          Number(store.coordinates.lng)
         );
 
         if (distance <= radius) {
           return {
             storeId: store._id,
             storeName: store.storeName,
-            area: store.address.area,
-            city: store.address.city,
-            distance: Number(distance.toFixed(2))
+            area: store.address?.area || "",
+            city: store.address?.city || "",
+            distance: Number(distance.toFixed(2)),
           };
         }
         return null;
       })
-      .filter(Boolean)
-      .sort((a, b) => a.distance - b.distance);
+      .filter(Boolean);
+
+    console.log("NEARBY RESULTS:", results.length);
 
     res.json({ results });
-  } catch (error) {
-    console.error("Nearby search error:", error);
-    res.status(500).json({
-      message: "Failed to fetch nearby medical stores"
-    });
+  } catch (err) {
+    console.error("NEARBY ERROR:", err);
+    res.status(500).json({ results: [] });
   }
 };
