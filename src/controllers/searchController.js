@@ -4,6 +4,11 @@ const Inventory = require("../models/Inventory");
 const getDistanceKm = require("../utils/distance");
 const stringSimilarity = require("string-similarity");
 
+// ✅ Escape regex special chars
+const escapeRegex = (text) => {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+};
+
 /* ================= MEDICINE SEARCH ================= */
 exports.searchMedicine = async (req, res) => {
   try {
@@ -14,13 +19,21 @@ exports.searchMedicine = async (req, res) => {
     }
 
     const normalizedQuery = query.trim().toLowerCase();
-
-    // 🔹 First attempt: regex match
-    let medicine = await Medicine.findOne({
-      name: { $regex: normalizedQuery, $options: "i" },
-    });
+    const safeQuery = escapeRegex(normalizedQuery);
 
     let suggestion = null;
+
+    // 🔹 First attempt: exact match (best)
+    let medicine = await Medicine.findOne({
+      name: normalizedQuery,
+    });
+
+    // 🔹 Second attempt: partial match
+    if (!medicine) {
+      medicine = await Medicine.findOne({
+        name: { $regex: safeQuery, $options: "i" },
+      });
+    }
 
     // 🔹 If medicine NOT found → suggest closest match
     if (!medicine) {
@@ -33,11 +46,11 @@ exports.searchMedicine = async (req, res) => {
           medicineNames
         );
 
-        if (match.bestMatch.rating > 0.2) {
+        if (match.bestMatch.rating > 0.25) {
           suggestion = match.bestMatch.target;
 
           medicine = await Medicine.findOne({
-            name: { $regex: suggestion, $options: "i" },
+            name: suggestion,
           });
         }
       }
@@ -51,20 +64,23 @@ exports.searchMedicine = async (req, res) => {
       }
     }
 
-    // 🔹 Get inventory entries
+    // 🔹 Get inventory entries + store details
     const inventoryList = await Inventory.find({
       medicineId: medicine._id,
       quantityAvailable: { $gt: 0 },
       isActive: true,
-    }).populate("storeId");
+    }).populate("storeId", "storeName phone address coordinates isVerified images");
 
-    // 🔹 Filter nearby stores
+    // 🔹 Filter nearby verified stores
     const results = inventoryList
       .map((item) => {
         const store = item.storeId;
 
+        if (!store || store.isVerified !== true) {
+          return null;
+        }
+
         if (
-          !store ||
           !store.coordinates ||
           store.coordinates.lat == null ||
           store.coordinates.lng == null
@@ -79,21 +95,19 @@ exports.searchMedicine = async (req, res) => {
           Number(store.coordinates.lng)
         );
 
-        if (distance <= Number(radius)) {
-          return {
-            storeId: store._id,
-            medicineId: item.medicineId,
-            storeName: store.storeName,
-            phone: store.phone,
-            area: store.address?.area || "",
-            deliveryAvailable: store.deliveryAvailable || false,
-            price: item.price,
-            quantityAvailable: item.quantityAvailable,
-            distance: Number(distance.toFixed(2)),
-          };
-        }
+        if (distance > Number(radius)) return null;
 
-        return null;
+        return {
+          storeId: store._id,
+          storeName: store.storeName,
+          phone: store.phone,
+          area: store.address?.area || "",
+          city: store.address?.city || "",
+          images: store.images || [],
+          price: item.price,
+          quantityAvailable: item.quantityAvailable,
+          distance: Number(distance.toFixed(2)),
+        };
       })
       .filter(Boolean)
       .sort((a, b) => a.price - b.price);
@@ -114,12 +128,14 @@ exports.searchMedicineSuggestions = async (req, res) => {
   try {
     const { q } = req.query;
 
-    if (!q || q.length < 2) {
+    if (!q || q.trim().length < 2) {
       return res.json([]);
     }
 
+    const safeQ = escapeRegex(q.trim().toLowerCase());
+
     const suggestions = await Medicine.find({
-      name: { $regex: `^${q}`, $options: "i" },
+      name: { $regex: `^${safeQ}`, $options: "i" },
     })
       .limit(5)
       .select("name -_id");
@@ -142,7 +158,9 @@ exports.getNearbyStores = async (req, res) => {
       });
     }
 
-    const stores = await MedicalStore.find({ isVerified: true });
+    const stores = await MedicalStore.find({ isVerified: true }).select(
+      "storeName address coordinates images"
+    );
 
     const results = stores
       .map((store) => {
@@ -161,18 +179,16 @@ exports.getNearbyStores = async (req, res) => {
           Number(store.coordinates.lng)
         );
 
-        if (distance <= Number(radius)) {
-          return {
-            storeId: store._id,
-            storeName: store.storeName,
-            area: store.address?.area || "",
-            city: store.address?.city || "",
-            images: store.images || [],
-            distance: Number(distance.toFixed(2)),
-          };
-        }
+        if (distance > Number(radius)) return null;
 
-        return null;
+        return {
+          storeId: store._id,
+          storeName: store.storeName,
+          area: store.address?.area || "",
+          city: store.address?.city || "",
+          images: store.images || [],
+          distance: Number(distance.toFixed(2)),
+        };
       })
       .filter(Boolean)
       .sort((a, b) => a.distance - b.distance);
