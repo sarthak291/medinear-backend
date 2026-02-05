@@ -3,10 +3,12 @@ const router = express.Router();
 
 const {
   searchMedicine,
-  searchMedicineSuggestions
+  searchMedicineSuggestions,
+  getNearbyStores
 } = require("../controllers/searchController");
 
 router.get("/medicine", searchMedicine);
 router.get("/suggest", searchMedicineSuggestions);
+router.get("/nearby", getNearbyStores);
 
 module.exports = router;
