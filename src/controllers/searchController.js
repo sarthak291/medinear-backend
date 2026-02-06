@@ -69,7 +69,7 @@ exports.searchMedicine = async (req, res) => {
       medicineId: medicine._id,
       quantityAvailable: { $gt: 0 },
       isActive: true,
-    }).populate("storeId", "storeName phone address coordinates isVerified images");
+    }).populate("storeId", "storeName phone address coordinates isVerified images googleMapLink");
 
     // 🔹 Filter nearby verified stores
     const results = inventoryList
@@ -103,6 +103,7 @@ exports.searchMedicine = async (req, res) => {
           phone: store.phone,
           area: store.address?.area || "",
           city: store.address?.city || "",
+          googleMapLink: store.googleMapLink || "",
           images: store.images || [],
           price: item.price,
           quantityAvailable: item.quantityAvailable,
@@ -159,7 +160,7 @@ exports.getNearbyStores = async (req, res) => {
     }
 
     const stores = await MedicalStore.find({ isVerified: true }).select(
-      "storeName address coordinates images"
+      "storeName address coordinates images googleMapLink"
     );
 
     const results = stores
@@ -186,6 +187,7 @@ exports.getNearbyStores = async (req, res) => {
           storeName: store.storeName,
           area: store.address?.area || "",
           city: store.address?.city || "",
+          googleMapLink: store.googleMapLink || "",
           images: store.images || [],
           distance: Number(distance.toFixed(2)),
         };

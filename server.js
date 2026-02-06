@@ -44,3 +44,6 @@ app.use("/api/store/inventory", inventoryRoutes);
 
 const adminRoutes = require("./src/routes/adminRoutes");
 app.use("/api/admin", adminRoutes);
+
+const contactRoutes = require("./src/routes/contactRoutes");
+app.use("/api/contact", contactRoutes);

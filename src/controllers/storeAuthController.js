@@ -1,6 +1,7 @@
 const MedicalStore = require("../models/MedicalStore");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+
 exports.storeSignup = async (req, res) => {
   try {
     const body = req.body || {};
@@ -12,6 +13,7 @@ exports.storeSignup = async (req, res) => {
       phone,
       area,
       city,
+      googleMapLink,
       lat,
       lng,
     } = body;
@@ -48,6 +50,7 @@ exports.storeSignup = async (req, res) => {
         area,
         city,
       },
+      googleMapLink: googleMapLink || "", // ✅ SAVE MAP LINK
       coordinates: {
         lat: Number(lat),
         lng: Number(lng),
@@ -66,8 +69,6 @@ exports.storeSignup = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
-
 
 exports.storeLogin = async (req, res) => {
   try {
@@ -93,11 +94,9 @@ exports.storeLogin = async (req, res) => {
       });
     }
 
-    const token = jwt.sign(
-      { storeId: store._id },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+    const token = jwt.sign({ storeId: store._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
 
     res.json({
       message: "Login successful",
@@ -113,4 +112,3 @@ exports.storeLogin = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-

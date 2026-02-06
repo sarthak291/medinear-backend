@@ -1,11 +1,12 @@
 const MedicalStore = require("../models/MedicalStore");
 const cloudinary = require("../config/cloudinary");
+
 exports.getStoreProfile = async (req, res) => {
   try {
     const storeId = req.storeId;
 
     const store = await MedicalStore.findById(storeId).select(
-      "storeName email phone address coordinates images isVerified"
+      "storeName email phone address coordinates images isVerified googleMapLink"
     );
 
     if (!store) {
@@ -22,31 +23,42 @@ exports.getStoreProfile = async (req, res) => {
 exports.updateStoreProfile = async (req, res) => {
   try {
     const storeId = req.storeId;
-    const { storeName, phone, area, city, lat, lng } = req.body;
 
-    const updateData = {
-      storeName,
-      phone,
-      address: {
+    const { storeName, phone, area, city, lat, lng, googleMapLink } = req.body;
+
+    const updateData = {};
+
+    if (storeName) updateData.storeName = storeName;
+    if (phone) updateData.phone = phone;
+
+    if (area || city) {
+      updateData.address = {
         area,
         city,
-      },
-      coordinates: {
+      };
+    }
+
+    // ✅ Only update coordinates if values are provided
+    if (lat !== undefined && lng !== undefined && lat !== "" && lng !== "") {
+      updateData.coordinates = {
         lat: Number(lat),
         lng: Number(lng),
-      },
-    };
+      };
+    }
+
+    // ✅ Save google map link properly
+    if (googleMapLink !== undefined) {
+      updateData.googleMapLink = googleMapLink;
+    }
 
     // If new images uploaded
     if (req.files && req.files.length > 0) {
       updateData.images = req.files.map((file) => file.path);
     }
 
-    const store = await MedicalStore.findByIdAndUpdate(
-      storeId,
-      updateData,
-      { new: true }
-    );
+    const store = await MedicalStore.findByIdAndUpdate(storeId, updateData, {
+      new: true,
+    });
 
     res.json({
       message: "Profile updated successfully",
@@ -68,14 +80,13 @@ exports.deleteStoreImage = async (req, res) => {
     }
 
     // 🔹 Extract public_id from Cloudinary URL
-    // Example URL:
-    // https://res.cloudinary.com/demo/image/upload/v123456/abcxyz.jpg
     const urlParts = imageUrl.split("/");
-const fileName = urlParts.pop(); // abc123.jpg
-const folderPath = urlParts.slice(urlParts.indexOf("upload") + 2).join("/");
+    const fileName = urlParts.pop(); // abc123.jpg
+    const folderPath = urlParts
+      .slice(urlParts.indexOf("upload") + 2)
+      .join("/");
 
-const publicId = `${folderPath}/${fileName.split(".")[0]}`;
-
+    const publicId = `${folderPath}/${fileName.split(".")[0]}`;
 
     // 🔹 Delete from Cloudinary
     await cloudinary.uploader.destroy(publicId);

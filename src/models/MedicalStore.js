@@ -29,6 +29,11 @@ const MedicalStoreSchema = new mongoose.Schema(
       city: String,
       area: String,
     },
+    
+    googleMapLink: {
+    type: String,
+    default: ""
+    },
 
     coordinates: {
       lat: Number,
