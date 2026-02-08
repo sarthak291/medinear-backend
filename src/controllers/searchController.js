@@ -99,6 +99,7 @@ exports.searchMedicine = async (req, res) => {
 
         return {
           storeId: store._id,
+          medicineId: item.medicineId?._id || item.medicineId,
           storeName: store.storeName,
           phone: store.phone,
           area: store.address?.area || "",

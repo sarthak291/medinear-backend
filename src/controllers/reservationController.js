@@ -9,25 +9,34 @@ exports.createReservation = async (req, res) => {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    // Create reservation
+    // ✅ Validate medicineId exists
+    for (let med of medicines) {
+      if (!med.medicineId) {
+        return res.status(400).json({ message: "medicineId missing in medicines array" });
+      }
+    }
+
     const reservation = await Reservation.create({
       userName,
       phone,
       storeId,
-      medicines,
-      expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000) // 2 hours
+      medicines: medicines.map((m) => ({
+        medicineId: m.medicineId,
+        quantity: m.quantity || 1,
+      })),
+      expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000), // 2 hours
     });
 
     res.status(201).json({
       message: "Reservation created successfully",
-      reservationId: reservation._id
+      reservationId: reservation._id,
     });
-
   } catch (error) {
-    console.error(error);
+    console.error("CREATE RESERVATION ERROR:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 exports.updateReservationStatus = async (req, res) => {
   try {
@@ -63,20 +72,15 @@ exports.updateReservationStatus = async (req, res) => {
 
 exports.getStoreReservations = async (req, res) => {
   try {
-    const { storeId } = req.params;
-
-    if (!storeId) {
-      return res.status(400).json({ message: "Store ID required" });
-    }
+    const storeId = req.storeId;
 
     const reservations = await Reservation.find({ storeId })
       .sort({ createdAt: -1 })
-      .populate("storeId", "storeName")
       .populate("medicines.medicineId", "name");
 
     res.json(reservations);
-  } catch (error) {
-    console.error(error);
+  } catch (err) {
+    console.error("STORE RESERVATION ERROR:", err);
     res.status(500).json({ message: "Server error" });
   }
 };

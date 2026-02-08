@@ -1,14 +1,19 @@
 const express = require("express");
 const router = express.Router();
+
 const {
   createReservation,
   updateReservationStatus,
-  getStoreReservations
+  getStoreReservations,
 } = require("../controllers/reservationController");
 
-router.get("/store/:storeId", getStoreReservations);
-
+// Buy now reservation
 router.post("/buy-now", createReservation);
+
+// Update reservation status
 router.put("/update-status", updateReservationStatus);
+
+// Store reservations
+router.get("/store/:storeId", getStoreReservations);
 
 module.exports = router;

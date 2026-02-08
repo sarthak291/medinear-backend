@@ -47,3 +47,7 @@ app.use("/api/admin", adminRoutes);
 
 const contactRoutes = require("./src/routes/contactRoutes");
 app.use("/api/contact", contactRoutes);
+
+const storeReservationRoutes = require("./src/routes/storeReservationRoutes");
+app.use("/api/store", storeReservationRoutes);
+
