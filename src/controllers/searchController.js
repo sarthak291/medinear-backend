@@ -204,3 +204,89 @@ exports.getNearbyStores = async (req, res) => {
     });
   }
 };
+
+exports.searchCartMedicines = async (req, res) => {
+  try {
+    const { lat, lng, radius = 50, medicines } = req.body;
+
+    if (!lat || !lng || !medicines?.length) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    // 🔹 Get medicine documents
+    const medicineDocs = await Medicine.find({
+      name: { $in: medicines.map((m) => new RegExp(`^${m.medicineName}$`, "i")) }
+    });
+
+    if (medicineDocs.length !== medicines.length) {
+      return res.json({ results: [] });
+    }
+
+    const medicineMap = {};
+    medicineDocs.forEach((m) => {
+      medicineMap[m._id.toString()] = m.name;
+    });
+
+    // 🔹 Find inventories matching all medicines
+    const inventories = await Inventory.find({
+      medicineId: { $in: medicineDocs.map((m) => m._id) },
+      quantityAvailable: { $gt: 0 },
+      isActive: true,
+    }).populate("storeId");
+
+    const storeMap = {};
+
+    inventories.forEach((inv) => {
+      const store = inv.storeId;
+      if (!store) return;
+
+      if (!storeMap[store._id]) {
+        storeMap[store._id] = {
+          storeId: store._id,
+          storeName: store.storeName,
+          area: store.address?.area || "",
+          city: store.address?.city || "",
+          googleMapLink: store.googleMapLink || "",
+          images: store.images || [],
+          medicines: [],
+          totalPrice: 0,
+          coordinates: store.coordinates,
+        };
+      }
+
+      storeMap[store._id].medicines.push({
+        medicineName: medicineMap[inv.medicineId.toString()],
+        price: inv.price,
+        availableQty: inv.quantityAvailable,
+      });
+    });
+
+    // 🔹 Filter stores having ALL medicines
+    const results = Object.values(storeMap)
+      .filter((store) => store.medicines.length === medicines.length)
+      .map((store) => {
+        store.totalPrice = store.medicines.reduce(
+          (sum, m) => sum + m.price,
+          0
+        );
+
+        store.distance = Number(
+          getDistanceKm(
+            lat,
+            lng,
+            store.coordinates.lat,
+            store.coordinates.lng
+          ).toFixed(2)
+        );
+
+        return store;
+      })
+      .filter((s) => s.distance <= radius)
+      .sort((a, b) => a.totalPrice - b.totalPrice);
+
+    res.json({ results });
+  } catch (err) {
+    console.error("CART SEARCH ERROR:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};

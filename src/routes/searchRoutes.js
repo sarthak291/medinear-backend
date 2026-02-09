@@ -3,9 +3,13 @@ const {
   searchMedicine,
   searchMedicineSuggestions,
   getNearbyStores,
+  searchCartMedicines
 } = require("../controllers/searchController");
 
 const router = express.Router();
+
+
+router.post("/cart", searchCartMedicines);
 
 // 🔹 Medicine search
 router.get("/medicine", searchMedicine);
