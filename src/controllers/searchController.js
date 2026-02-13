@@ -290,3 +290,18 @@ exports.searchCartMedicines = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+
+
+exports.getNewestStores = async (req, res) => {
+  try {
+    const stores = await MedicalStore.find({ isVerified: true })
+      .sort({ createdAt: -1 })
+      .limit(6);
+
+    res.json(stores);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};

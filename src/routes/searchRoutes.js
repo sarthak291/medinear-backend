@@ -1,13 +1,14 @@
 const express = require("express");
+
 const {
   searchMedicine,
   searchMedicineSuggestions,
   getNearbyStores,
-  searchCartMedicines
+  searchCartMedicines,
+  getNewestStores,
 } = require("../controllers/searchController");
 
 const router = express.Router();
-
 
 router.post("/cart", searchCartMedicines);
 
@@ -19,5 +20,8 @@ router.get("/suggest", searchMedicineSuggestions);
 
 // 🔹 Nearby medical stores
 router.get("/nearby", getNearbyStores);
+
+// ✅ Newest stores
+router.get("/newest-stores", getNewestStores);
 
 module.exports = router;

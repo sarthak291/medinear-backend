@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const storeAuth = require("../middleware/storeAuth");
+const upload = require("../middleware/csvUpload");
+const { uploadBulkInventory } = require("../controllers/inventoryController");
 
 const {
   addInventoryItem,
