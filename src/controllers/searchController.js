@@ -293,9 +293,11 @@ exports.searchCartMedicines = async (req, res) => {
 
 
 
+
+
 exports.getNewestStores = async (req, res) => {
   try {
-    const stores = await MedicalStore.find({ isVerified: true })
+    const stores = await MedicalStore.find()
       .sort({ createdAt: -1 })
       .limit(6);
 
@@ -305,3 +307,4 @@ exports.getNewestStores = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
